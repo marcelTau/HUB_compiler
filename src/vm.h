@@ -21,6 +21,7 @@ class VirtualMachine {
         ADD,
         SUB,
         EQ,
+        NEQ,
     };
 public:
     VirtualMachine(std::span<ByteCode::Type> bytecode) : bytecode { bytecode }{ ip = std::begin(bytecode); }
@@ -70,6 +71,15 @@ public:
                 assert(false && "type mismatch");
             }
             break;
+        case BinaryOperators::NEQ:
+            if (std::holds_alternative<INumber>(a) && std::holds_alternative<INumber>(b)) {
+                stack.emplace_back(std::get<INumber>(a) != std::get<INumber>(b));
+            } else if (std::holds_alternative<DNumber>(a) && std::holds_alternative<DNumber>(b)) {
+                stack.emplace_back(std::get<DNumber>(a) != std::get<DNumber>(b));
+            } else {
+                assert(false && "type mismatch");
+            }
+            break;
         }
     }
 
@@ -93,6 +103,9 @@ public:
                 break;
             case ByteCode::Instruction::EQ:
                 doBinaryOperation(BinaryOperators::EQ);
+                break;
+            case ByteCode::Instruction::NEQ:
+                doBinaryOperation(BinaryOperators::NEQ);
                 break;
             case ByteCode::Instruction::PUSH_INT:
                 stack.push_back(readConstant<int>());

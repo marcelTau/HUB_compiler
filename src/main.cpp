@@ -50,7 +50,7 @@ auto main(int argc, char* argv[]) -> int {
         return EXIT_FAILURE;
     }*/
 
-    auto lexer = Lexer("print 1 == 2;"sv);
+    auto lexer = Lexer("print 2 != 2;"sv);
     auto tokens = lexer.lex();
 
     fmt::print("=== Tokens ===\n");

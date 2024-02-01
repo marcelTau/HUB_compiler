@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -18,6 +19,7 @@ namespace ByteCode {
         SUB,
 
         EQ,
+        NEQ,
 
         PUSH_INT,
         PUSH_DOUBLE,
@@ -67,7 +69,6 @@ private:
     }
 
     auto visit(Statements::Print&               statement) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
         statement.expression->accept(*this);
         add_instruction(ByteCode::Instruction::PRINT);
     }
@@ -76,7 +77,6 @@ private:
     // Expressions
     // ------------------------------------------------------------------------
     auto visit(Expressions::BinaryOperator&     expression) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
         expression.lhs->accept(*this);
         expression.rhs->accept(*this);
 
@@ -84,29 +84,28 @@ private:
     }
 
     auto visit(Expressions::INumber&            expression) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
         add_instruction(ByteCode::Instruction::PUSH_INT);
         add_instruction(expression.value);
     }
     auto visit(Expressions::DNumber&            expression) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
         add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
         add_instruction(expression.value);
     }
 
     auto visit(Expressions::Variable&            expression) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
+        assert(false);
         //add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
         //add_instruction(expression.value);
     }
 
     auto visit(Expressions::Logical&             expression) -> void override {
-        fmt::print("{}\n", __PRETTY_FUNCTION__);
         expression.lhs->accept(*this);
         expression.rhs->accept(*this);
         switch (expression.operator_type.ttype) {
             case TokenType::EqualEqual:
                 return add_instruction(ByteCode::Instruction::EQ);
+            case TokenType::BangEqual:
+                return add_instruction(ByteCode::Instruction::NEQ);
             default:
                 assert(false);
         }

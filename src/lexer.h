@@ -172,6 +172,7 @@ private:
              SINGLE_TOKEN('*', Star);
              SINGLE_TOKEN('/', Slash);
              NESTED_TOKEN('=', '=', EqualEqual, Equal);
+             NESTED_TOKEN('!', '=', BangEqual, Bang);
 
             case ' ':
             case '\t':

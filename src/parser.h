@@ -70,7 +70,7 @@ public:
     [[nodiscard]] auto equality() -> UniqExpr {
         auto expr = term();
 
-        while (checkAndAdvance(TokenType::EqualEqual /* TODO TokenType::BangEqual */)) {
+        while (checkAndAdvance(TokenType::EqualEqual, TokenType::BangEqual)) {
             auto op = previous();
             auto right = term();
             expr = std::make_unique<Expressions::Logical>(std::move(expr), op, std::move(right));
