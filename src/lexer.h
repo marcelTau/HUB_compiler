@@ -1,5 +1,6 @@
 #pragma once
 #include <cctype>
+#include <math.h>
 #include <optional>
 #include <vector>
 #include <string_view>
@@ -15,7 +16,6 @@ public:
 public:
     explicit Lexer(const std::string_view source) : source { source } {
         using namespace std::string_view_literals;
-        //spdlog::info("Lexer created");
         keywords.insert({ "print"sv, TokenType::Print });
     }
 
@@ -136,10 +136,11 @@ private:
         }
 
         const auto literal = getCurrentLiteral();
-        try {
+
+        if (keywords.contains(literal)) {
             addToken(keywords.at(literal), literal);
-        } catch (const std::exception& e) {
-            spdlog::error(fmt::format("lexer identifier failed: {}", e.what()));
+        } else {
+            addToken(TokenType::Identifier, literal);
         }
     }
 
@@ -151,9 +152,9 @@ private:
 #define NESTED_TOKEN(first, second, first_name, second_name) \
         case first: {\
             if (expect(second)) {\
-                addToken(TokenType::first_name);\
+                addToken(TokenType::first_name, std::nullopt);\
             } else {\
-                addToken(TokenType::second_name);\
+                addToken(TokenType::second_name, std::nullopt);\
             }\
             break;\
         }\
@@ -170,6 +171,7 @@ private:
              SINGLE_TOKEN(';', Semicolon);
              SINGLE_TOKEN('*', Star);
              SINGLE_TOKEN('/', Slash);
+             NESTED_TOKEN('=', '=', EqualEqual, Equal);
 
             case ' ':
             case '\t':

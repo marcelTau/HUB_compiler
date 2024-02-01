@@ -68,3 +68,11 @@ TEST(parser, minusDnumber) {
     expected.push_back(std::make_unique<Statements::ExpressionStatement>(std::move(expr)));
     EXPECT_TRUE(is_same(got, expected));
 }
+
+TEST(parser, variable) {
+    auto got = setup("a");
+    auto expr = std::make_unique<Expressions::Variable>("a");
+    StmtList expected;
+    expected.push_back(std::make_unique<Statements::ExpressionStatement>(std::move(expr)));
+    EXPECT_TRUE(is_same(got, expected));
+}

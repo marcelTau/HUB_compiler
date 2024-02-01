@@ -69,3 +69,14 @@ TEST(lexer, Dnumbers) {
 
     EXPECT_EQ(tokens, expected) << fmt::format("\nGot:      {}\nExpected: {}\n", tokens, expected);;
 }
+
+TEST(lexer, Identifier) {
+    Lexer l("a"sv);
+    const auto tokens = l.lex();
+    const auto expected = Lexer::TokenList {
+        Token { .ttype = Identifier, .lexeme = "a", .position = { 1, 1 } },
+        Token { .ttype = Eof, .lexeme = "", .position = { 1, 1 } },
+    };
+
+    EXPECT_EQ(tokens, expected) << fmt::format("\nGot:      {}\nExpected: {}\n", tokens, expected);;
+}

@@ -12,11 +12,15 @@ namespace Expressions {
     struct INumber;
     struct DNumber;
     struct BinaryOperator;
+    struct Variable;
+    struct Logical;
 
     struct ExpressionVisitor {
         virtual void visit(BinaryOperator& expression) = 0;
         virtual void visit(INumber& expression) = 0;
         virtual void visit(DNumber& expression) = 0;
+        virtual void visit(Variable& expression) = 0;
+        virtual void visit(Logical& expression) = 0;
     };
 
     // ============================================================================
@@ -63,5 +67,23 @@ namespace Expressions {
         [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "DNumber " + std::to_string(value); };
 
         double value;
+    };
+
+    struct Variable : public ExpressionAcceptor<Variable> {
+        Variable(std::string_view name) : name { name } {};
+        Variable(Variable&& other) noexcept = default;
+        [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "Variable " + name; };
+
+        std::string name;
+    };
+
+    struct Logical : public ExpressionAcceptor<Logical> {
+        Logical(std::unique_ptr<Expression> lhs, Token operator_type, std::unique_ptr<Expression> rhs) : lhs { std::move(lhs) }, operator_type { operator_type }, rhs { std::move(rhs) } {};
+        Logical(Logical&& other) noexcept = default;
+        [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "Logical " + lhs->to_string() + " " + std::string { operator_type.getLexeme() } + " " + rhs->to_string(); };
+
+        std::unique_ptr<Expression> lhs;
+        Token operator_type;
+        std::unique_ptr<Expression> rhs;
     };
 }

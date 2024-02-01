@@ -14,10 +14,15 @@ enum class TokenType : unsigned int {
     Minus,
     Plus,
 
+    Equal,
+    EqualEqual,
+
     INumber,
     DNumber,
 
     Print,
+
+    Identifier,
 
     Eof,
 };
@@ -35,10 +40,15 @@ constexpr std::array tokenTypeName = {
     "Minus"sv,
     "Plus"sv,
 
+    "Equal"sv,
+    "EqualEqual"sv,
+
     "INumber"sv,
     "DNumber"sv,
 
     "print"sv,
+
+    "identifier"sv,
 
     "EOF"sv,
 };

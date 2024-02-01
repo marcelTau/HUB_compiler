@@ -17,6 +17,8 @@ namespace ByteCode {
         ADD,
         SUB,
 
+        EQ,
+
         PUSH_INT,
         PUSH_DOUBLE,
     };
@@ -51,6 +53,7 @@ private:
 
     template<typename T>
     auto add_instruction(T value) -> void {
+        fmt::print("Adding instruction: {}\n", __PRETTY_FUNCTION__);
         uint8_t byteArray[sizeof(T)];
         std::memcpy(byteArray, &value, sizeof(T));
         this->instructions.insert(std::end(this->instructions), std::begin(byteArray), std::end(byteArray));
@@ -64,6 +67,7 @@ private:
     }
 
     auto visit(Statements::Print&               statement) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
         statement.expression->accept(*this);
         add_instruction(ByteCode::Instruction::PRINT);
     }
@@ -72,6 +76,7 @@ private:
     // Expressions
     // ------------------------------------------------------------------------
     auto visit(Expressions::BinaryOperator&     expression) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
         expression.lhs->accept(*this);
         expression.rhs->accept(*this);
 
@@ -79,12 +84,32 @@ private:
     }
 
     auto visit(Expressions::INumber&            expression) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
         add_instruction(ByteCode::Instruction::PUSH_INT);
         add_instruction(expression.value);
     }
     auto visit(Expressions::DNumber&            expression) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
         add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
         add_instruction(expression.value);
+    }
+
+    auto visit(Expressions::Variable&            expression) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
+        //add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
+        //add_instruction(expression.value);
+    }
+
+    auto visit(Expressions::Logical&             expression) -> void override {
+        fmt::print("{}\n", __PRETTY_FUNCTION__);
+        expression.lhs->accept(*this);
+        expression.rhs->accept(*this);
+        switch (expression.operator_type.ttype) {
+            case TokenType::EqualEqual:
+                return add_instruction(ByteCode::Instruction::EQ);
+            default:
+                assert(false);
+        }
     }
 
 private:

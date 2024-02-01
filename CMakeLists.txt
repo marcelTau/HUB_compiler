@@ -12,7 +12,6 @@ FetchContent_MakeAvailable(googletest fmt)
 
 
 set(SOURCES
-    src/parser.cpp
 )
 
 add_executable(

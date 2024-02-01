@@ -56,20 +56,32 @@ public:
 
     // Expressions
 
-    auto expression() -> UniqExpr {
+    [[nodiscard]] auto expression() -> UniqExpr {
         return assignment();
     }
 
 
-    auto assignment() -> UniqExpr {
+    [[nodiscard]] auto assignment() -> UniqExpr {
+        auto expr = equality();
+        //auto expr = term();
+        return expr;
+    }
+
+    [[nodiscard]] auto equality() -> UniqExpr {
         auto expr = term();
+
+        while (checkAndAdvance(TokenType::EqualEqual /* TODO TokenType::BangEqual */)) {
+            auto op = previous();
+            auto right = term();
+            expr = std::make_unique<Expressions::Logical>(std::move(expr), op, std::move(right));
+        }
+
         return expr;
     }
 
 
-    auto term() -> UniqExpr {
+    [[nodiscard]] auto term() -> UniqExpr {
         auto expr = factor();
-
 
         while (checkAndAdvance(TokenType::Plus, TokenType::Minus)) {
             auto op = previous();
@@ -81,7 +93,7 @@ public:
     }
 
 
-    auto factor() -> UniqExpr {
+    [[nodiscard]] auto factor() -> UniqExpr {
         auto expr = primary();
 
         while (checkAndAdvance(TokenType::Star, TokenType::Slash)) {
@@ -94,7 +106,7 @@ public:
     }
 
 
-    auto primary() -> UniqExpr {
+    [[nodiscard]] auto primary() -> UniqExpr {
         if (checkAndAdvance(TokenType::INumber)) {
             auto number = std::make_unique<Expressions::INumber>(previous().lexeme);
             return UniqExpr(std::move(number));
@@ -102,6 +114,11 @@ public:
         if (checkAndAdvance(TokenType::DNumber)) {
             auto number = std::make_unique<Expressions::DNumber>(previous().lexeme);
             return UniqExpr(std::move(number));
+        }
+
+        if (checkAndAdvance(TokenType::Identifier)) {
+            auto variable = std::make_unique<Expressions::Variable>(previous().lexeme);
+            return UniqExpr(std::move(variable));
         }
 
         assert(false && "primary failed");

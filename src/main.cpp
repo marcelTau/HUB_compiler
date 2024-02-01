@@ -50,17 +50,19 @@ auto main(int argc, char* argv[]) -> int {
         return EXIT_FAILURE;
     }*/
 
-    auto lexer = Lexer("print 3.7 + 1.5;"sv);
+    auto lexer = Lexer("print 1 == 2;"sv);
     auto tokens = lexer.lex();
 
+    fmt::print("=== Tokens ===\n");
     for (const auto& token : tokens) {
-        fmt::print(stderr, "{}\n", token);
+        fmt::print(stderr, "{} = {}\n", tokenTypeName.at((int)token.ttype), token);
     }
 
     auto p = Parser(tokens);
 
     auto stmts = p.parse();
 
+    fmt::print("=== Statements ===\n");
     for (const auto& stmt : stmts) {
         fmt::print(stderr, "{}\n", stmt->to_string());
     }
@@ -69,10 +71,12 @@ auto main(int argc, char* argv[]) -> int {
 
     auto outcome = generator.generate();
 
+    fmt::print("=== Generated ===\n");
     for (auto value : outcome) {
         fmt::print(stderr, "0x{:x}\n", value);
     }
 
+    fmt::print("=== Virtual machine ===\n");
     VirtualMachine vm(outcome);
 
     vm.execute();
