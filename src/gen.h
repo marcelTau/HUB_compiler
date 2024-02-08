@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -37,6 +38,23 @@ namespace ByteCode {
     struct NEq : Instruction {
         const char *const type = "NEq";
     };
+    struct Jz : Instruction {
+        Jz(std::string_view label, int offset) : label { label }, offset { offset } {}
+        const char *const type = "Jz";
+        std::string_view label;
+        int offset;
+    };
+    struct Jmp : Instruction {
+        Jmp(std::string_view label, int offset) : label { label }, offset { offset } {}
+        const char *const type = "Jmp";
+        std::string_view label;
+        int offset;
+    };
+    struct Label : Instruction {
+        Label(std::string_view label) : label { label } {}
+        const char *const type = "Label";
+        std::string_view label;
+    };
     struct PushInt : Instruction {
         PushInt(int value) : value { value } {}
         const char *const type = "PushInt";
@@ -57,6 +75,14 @@ namespace ByteCode {
         const char *const type = "Variable";
         std::string_view name;
     };
+}
+
+namespace Label {
+
+    [[nodiscard]] static auto generate(const auto& tag) -> std::string_view {
+        static auto index = 0;
+        return std::string_view { std::string { ".Label_" } + tag + std::to_string(index++) };
+    }
 }
 
 class BytecodeGenerator : public Expressions::ExpressionVisitor, Statements::StatementVisitor {
@@ -92,6 +118,26 @@ private:
     auto visit(Statements::Print&               statement) -> void override {
         statement.expression->accept(*this);
         add_instruction(ByteCode::Print {});
+    }
+
+    auto visit(Statements::IfStatement&         statement) -> void override {
+        statement.condition->accept(*this);
+
+        auto else_label = Label::generate("else");
+        auto end_if_label = Label::generate("end_if");
+
+        add_instruction(ByteCode::Jz(else_label, 0));
+
+        statement.then->accept(*this);
+
+        add_instruction(ByteCode::Jmp(end_if_label, 0));
+        add_instruction(ByteCode::Label(else_label));
+
+        if (statement.otherwise != nullptr) {
+            statement.otherwise->accept(*this);
+        }
+
+        add_instruction(ByteCode::Label(end_if_label));
     }
 
     // ------------------------------------------------------------------------

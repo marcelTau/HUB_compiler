@@ -26,6 +26,10 @@ enum class TokenType : unsigned int {
     DNumber,
 
     Print,
+    If,
+    Then,
+    Else,
+    End,
 
     Identifier,
 
@@ -56,9 +60,13 @@ constexpr std::array tokenTypeName = {
     "INumber"sv,
     "DNumber"sv,
 
-    "print"sv,
+    "Print"sv,
+    "If"sv,
+    "Then"sv,
+    "Else"sv,
+    "End"sv,
 
-    "identifier"sv,
+    "Identifier"sv,
 
     "EOF"sv,
 };

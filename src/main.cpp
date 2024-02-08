@@ -33,6 +33,35 @@ static auto readFileToString(const std::string_view path) -> std::optional<std::
     return content;
 }
 
+auto resolve(std::vector<std::unique_ptr<ByteCode::Instruction>>& instructions) -> void {
+
+    const auto find_label = [&](const auto& name) -> int {
+        auto found = std::find_if(std::begin(instructions), std::end(instructions), [name] (auto& inst) {
+            if (auto inner = dynamic_cast<ByteCode::Label *>(inst.get())) {
+                return inner->label == name;
+            }
+            return false;
+        });
+
+        return std::distance(std::begin(instructions), found);
+    };
+
+    for (int i = 0; i < instructions.size(); i++) {
+        auto& current = instructions[i];
+
+        if (auto inst = dynamic_cast<ByteCode::Jz *>(current.get())) {
+            const auto offset = find_label(inst->label);
+            spdlog::info("Jz Found offset: {}", offset);
+            inst->offset = offset - i;
+        }
+        if (auto inst = dynamic_cast<ByteCode::Jmp *>(current.get())) {
+            const auto offset = find_label(inst->label);
+            spdlog::info("Jmp Found offset: {}", offset);
+            inst->offset = offset - i;
+        }
+    }
+}
+
 auto main(int argc, char* argv[]) -> int {
     spdlog::info("Compiler started");
 
@@ -50,12 +79,14 @@ auto main(int argc, char* argv[]) -> int {
     }*/
 
     auto lexer = Lexer(R"(
-                a := 5;
-                b := 10;
-                c := a * b;
-                d := a != b;
-                print d;
-                print c;)"sv);
+                a := 10;
+                if a != 10 then
+                    print a;
+                else
+                    print 100;
+                end
+                print a;
+        )"sv);
     auto tokens = lexer.lex();
 
     fmt::print("=== Tokens ===\n");
@@ -75,6 +106,8 @@ auto main(int argc, char* argv[]) -> int {
     auto generator = BytecodeGenerator(stmts);
 
     auto outcome = generator.generate();
+
+    resolve(outcome);
 
     fmt::print("=== Generated ===\n");
     //for (auto value : outcome) {

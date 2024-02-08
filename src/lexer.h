@@ -16,6 +16,10 @@ public:
     explicit Lexer(const std::string_view source) : source { source } {
         using namespace std::string_view_literals;
         keywords.insert({ "print"sv, TokenType::Print });
+        keywords.insert({ "if"sv, TokenType::If });
+        keywords.insert({ "then"sv, TokenType::Then });
+        keywords.insert({ "else"sv, TokenType::Else });
+        keywords.insert({ "end"sv, TokenType::End });
     }
 
     [[nodiscard]] auto lex(void) noexcept -> TokenList {

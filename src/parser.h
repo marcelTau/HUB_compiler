@@ -29,6 +29,9 @@ public:
 
 
     [[nodiscard]] auto statement() -> UniqStmt {
+        if (checkAndAdvance(TokenType::If)) {
+            return ifStatement();
+        }
         if (checkAndAdvance(TokenType::Print)) {
             return printStatement();
         }
@@ -36,6 +39,21 @@ public:
         return expressionStatement();
     }
 
+    [[nodiscard]] auto ifStatement() -> UniqStmt {
+        auto condition = expression();
+        std::ignore = consume(TokenType::Then, "Expect 'then' after if statement.");
+        auto then = statement();
+
+        std::unique_ptr<Statements::Statement> else_branch;
+
+        if (checkAndAdvance(TokenType::Else)) {
+            else_branch = statement();
+        }
+
+        std::ignore = consume(TokenType::End, "Expect 'end' after if statement.");
+        auto ifStatement = std::make_unique<Statements::IfStatement>(std::move(condition), std::move(then), std::move(else_branch));
+        return UniqStmt(std::move(ifStatement));
+    }
 
     [[nodiscard]] auto expressionStatement() -> UniqStmt {
         auto expr = expression();

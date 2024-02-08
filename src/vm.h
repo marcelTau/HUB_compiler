@@ -128,7 +128,7 @@ public:
             const auto inst = readInstruction();
 
             if (dynamic_cast<ByteCode::Print *>(inst.get())) {
-                std::cout << std::visit(PrintVisitor{}, pop()) << '\n';
+                std::cout << "[output]" << std::visit(PrintVisitor{}, pop()) << '\n';
             } if (dynamic_cast<ByteCode::Add *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::ADD);
             } else if (dynamic_cast<ByteCode::Sub *>(inst.get())) {
@@ -141,19 +141,19 @@ public:
                 doBinaryOperation(BinaryOperators::EQ);
             } else if (dynamic_cast<ByteCode::NEq *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::NEQ);
-            } else if (dynamic_cast<ByteCode::PushInt *>(inst.get())) {
-                const auto value = dynamic_cast<ByteCode::PushInt *>(inst.get())->value;
+            } else if (const auto inner = dynamic_cast<ByteCode::PushInt *>(inst.get())) {
+                const auto value = inner->value;
                 spdlog::info(fmt::format("PushInt [{}]", value));
                 this->stack.push_back(value);
             } else if (dynamic_cast<ByteCode::PushDouble *>(inst.get())) {
                 assert(false && "Not implemented");
-            } else if (dynamic_cast<ByteCode::Assign *>(inst.get())) {
+            } else if (const auto inner = dynamic_cast<ByteCode::Assign *>(inst.get())) {
                 const auto value = pop();
-                const auto name = dynamic_cast<ByteCode::Assign *>(inst.get())->name;
+                const auto name = inner->name;
                 spdlog::info(fmt::format("Assign [{}] to {}", std::visit(PrintVisitor{}, value), name));
                 this->variables.insert({ name, value });
-            } else if (dynamic_cast<ByteCode::Variable *>(inst.get())) {
-                const auto name = dynamic_cast<ByteCode::Variable *>(inst.get())->name;
+            } else if (const auto inner = dynamic_cast<ByteCode::Variable *>(inst.get())) {
+                const auto name = inner->name;
                 spdlog::info(fmt::format("Lookup variable {}", name));
                 if (not this->variables.contains(name)) {
                     fmt::print(stderr, "No variable with name '{}'", name);
@@ -161,6 +161,17 @@ public:
                 }
 
                 this->stack.push_back(this->variables.at(name));
+            } else if (const auto inner = dynamic_cast<ByteCode::Jmp *>(inst.get())) {
+                const auto offset = inner->offset;
+                std::advance(this->ip, offset);
+            } else if (const auto inner = dynamic_cast<ByteCode::Jz *>(inst.get())) {
+                auto back = pop();
+                assert(std::holds_alternative<Bool>(back));
+                spdlog::error(std::visit(PrintVisitor{}, back));
+                if (not std::get<Bool>(back)) {
+                    const auto offset = inner->offset;
+                    std::advance(this->ip, offset);
+                }
             }
 
             //perform(inst);
