@@ -71,7 +71,7 @@ TEST(parser, minusDnumber) {
 
 TEST(parser, variable) {
     auto got = setup("a");
-    auto expr = std::make_unique<Expressions::Variable>("a");
+    auto expr = std::make_unique<Expressions::Variable>(Token { .ttype = { TokenType::Identifier }, .lexeme = { "a" }, .position = { .line = 1, .column = 1 } });
     StmtList expected;
     expected.push_back(std::make_unique<Statements::ExpressionStatement>(std::move(expr)));
     EXPECT_TRUE(is_same(got, expected));

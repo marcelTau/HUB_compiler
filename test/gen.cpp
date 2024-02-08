@@ -4,14 +4,14 @@
 #include "parser.h"
 #include "vm.h"
 
-static auto setup(const std::string_view code) -> std::vector<std::uint8_t> {
+static auto setup(const std::string_view code) -> std::vector<std::unique_ptr<ByteCode::Instruction>> {
     Lexer l(code);
     auto tokens = l.lex();
 
     Parser p(tokens);
     auto stmts = p.parse();
 
-    BytecodeGenerator g({}, stmts);
+    BytecodeGenerator g(stmts);
 
     return g.generate();
 }

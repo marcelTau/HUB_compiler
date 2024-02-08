@@ -174,6 +174,14 @@ private:
              NESTED_TOKEN('=', '=', EqualEqual, Equal);
              NESTED_TOKEN('!', '=', BangEqual, Bang);
 
+            case ':':
+                if (expect('=')) {
+                    addToken(TokenType::Assign, std::nullopt);
+                } else {
+                    assert(false);
+                }
+                break;
+
             case ' ':
             case '\t':
             case '\r': break;

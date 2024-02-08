@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <math.h>
 #include <optional>
 #include <spdlog/spdlog.h>
 #include <fmt/core.h>
@@ -50,7 +49,11 @@ auto main(int argc, char* argv[]) -> int {
         return EXIT_FAILURE;
     }*/
 
-    auto lexer = Lexer("print 2 != 2;"sv);
+    auto lexer = Lexer(R"(
+                a := 5;
+                b := 10;
+                c := a + b;
+                print c;)"sv);
     auto tokens = lexer.lex();
 
     fmt::print("=== Tokens ===\n");
@@ -67,14 +70,14 @@ auto main(int argc, char* argv[]) -> int {
         fmt::print(stderr, "{}\n", stmt->to_string());
     }
 
-    auto generator = BytecodeGenerator({}, stmts);
+    auto generator = BytecodeGenerator(stmts);
 
     auto outcome = generator.generate();
 
     fmt::print("=== Generated ===\n");
-    for (auto value : outcome) {
-        fmt::print(stderr, "0x{:x}\n", value);
-    }
+    //for (auto value : outcome) {
+        //fmt::print(stderr, "0x{:x}\n", value);
+    //}
 
     fmt::print("=== Virtual machine ===\n");
     VirtualMachine vm(outcome);

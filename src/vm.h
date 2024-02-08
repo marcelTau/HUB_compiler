@@ -3,6 +3,7 @@
 #include "gen.h"
 #include <iostream>
 #include <iterator>
+#include <type_traits>
 #include <variant>
 
 using INumber = int;
@@ -23,8 +24,16 @@ class VirtualMachine {
         EQ,
         NEQ,
     };
+    static constexpr std::array BinaryOperatorNames = {
+        "ADD",
+        "SUB",
+        "EQ",
+        "NEQ",
+    };
+
+
 public:
-    VirtualMachine(std::span<ByteCode::Type> bytecode) : bytecode { bytecode }{ ip = std::begin(bytecode); }
+    VirtualMachine(std::span<std::unique_ptr<ByteCode::Instruction>> bytecode) : bytecode { std::move(bytecode) } { ip = std::begin(bytecode); }
 
     template<typename T>
     auto readConstant(void) -> T {
@@ -41,6 +50,8 @@ public:
 
         auto a = stack.back();
         stack.pop_back();
+
+        spdlog::info(fmt::format("Perform binary operation {} on {} {}", BinaryOperatorNames[(int) op], std::visit(PrintVisitor{}, a), std::visit(PrintVisitor{}, b)));
 
         switch (op) {
         case BinaryOperators::ADD:
@@ -84,36 +95,71 @@ public:
     }
 
     auto execute() -> void {
-        const auto readByte = [this]() -> ByteCode::Instruction { 
-            return static_cast<ByteCode::Instruction>(*ip++); 
+        const auto readInstruction = [this]() -> std::unique_ptr<ByteCode::Instruction> { 
+            return std::move(*ip++);
         };
 
         ByteCode::Instruction instruction;
 
+        spdlog::warn("=== Start VM ===");
+
         while (true && ip != std::end(bytecode)) {
-            switch (instruction = readByte()) {
-            case ByteCode::Instruction::PRINT:
+            const auto inst = readInstruction();
+
+            if (dynamic_cast<ByteCode::Print *>(inst.get())) {
                 std::cout << std::visit(PrintVisitor{}, pop()) << '\n';
-                break;
-            case ByteCode::Instruction::ADD:
+            } if (dynamic_cast<ByteCode::Add *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::ADD);
-                break;
-            case ByteCode::Instruction::SUB:
+            } else if (dynamic_cast<ByteCode::Sub *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::SUB);
-                break;
-            case ByteCode::Instruction::EQ:
+            } else if (dynamic_cast<ByteCode::Eq *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::EQ);
-                break;
-            case ByteCode::Instruction::NEQ:
+            } else if (dynamic_cast<ByteCode::NEq *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::NEQ);
-                break;
-            case ByteCode::Instruction::PUSH_INT:
-                stack.push_back(readConstant<int>());
-                break;
-            case ByteCode::Instruction::PUSH_DOUBLE:
-                stack.push_back(readConstant<double>());
-                break;
+            } else if (dynamic_cast<ByteCode::PushInt *>(inst.get())) {
+                this->stack.push_back(dynamic_cast<ByteCode::PushInt *>(inst.get())->value);
+            } else if (dynamic_cast<ByteCode::PushDouble *>(inst.get())) {
+                assert(false);
+            } else if (dynamic_cast<ByteCode::Assign *>(inst.get())) {
+                const auto value = pop();
+                const auto name = dynamic_cast<ByteCode::Assign *>(inst.get())->name;
+                this->variables.insert({ name, value });
+            } else if (dynamic_cast<ByteCode::Variable *>(inst.get())) {
+                const auto name = dynamic_cast<ByteCode::Variable *>(inst.get())->name;
+                if (not this->variables.contains(name)) {
+                    fmt::print(stderr, "No variable with name '{}'", name);
+                    assert(false);
+                }
+
+                this->stack.push_back(this->variables.at(name));
             }
+
+            //perform(inst);
+
+
+            //switch (instruction = readInstruction()) {
+            //case ByteCode::Instruction::PRINT:
+                //std::cout << std::visit(PrintVisitor{}, pop()) << '\n';
+                //break;
+            //case ByteCode::Instruction::ADD:
+                //doBinaryOperation(BinaryOperators::ADD);
+                //break;
+            //case ByteCode::Instruction::SUB:
+                //doBinaryOperation(BinaryOperators::SUB);
+                //break;
+            //case ByteCode::Instruction::EQ:
+                //doBinaryOperation(BinaryOperators::EQ);
+                //break;
+            //case ByteCode::Instruction::NEQ:
+                //doBinaryOperation(BinaryOperators::NEQ);
+                //break;
+            //case ByteCode::Instruction::PUSH_INT:
+                //stack.push_back(readConstant<int>());
+                //break;
+            //case ByteCode::Instruction::PUSH_DOUBLE:
+                //stack.push_back(readConstant<double>());
+                //break;
+            //}
         }
 
         //fmt::print("end stack\n");
@@ -132,7 +178,8 @@ private:
     }
 
 private:
-    std::span<ByteCode::Type> bytecode;
-    std::span<ByteCode::Type>::iterator ip;
+    std::span<std::unique_ptr<ByteCode::Instruction>> bytecode;
+    std::span<std::unique_ptr<ByteCode::Instruction>>::iterator ip;
     std::vector<Value> stack;
+    std::unordered_map<std::string_view, Value> variables;
 };

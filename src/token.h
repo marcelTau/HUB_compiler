@@ -20,6 +20,8 @@ enum class TokenType : unsigned int {
     Bang,
     BangEqual,
 
+    Assign,
+
     INumber,
     DNumber,
 
@@ -48,6 +50,8 @@ constexpr std::array tokenTypeName = {
 
     "Bang"sv,
     "BangEqual"sv,
+
+    "Assign"sv,
 
     "INumber"sv,
     "DNumber"sv,

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cassert>
 #include <cstdint>
 #include <string>
@@ -12,53 +11,91 @@
 namespace ByteCode {
     using Type = std::uint8_t;
 
-    enum class Instruction {
-        PRINT,
-
-        ADD,
-        SUB,
-
-        EQ,
-        NEQ,
-
-        PUSH_INT,
-        PUSH_DOUBLE,
+    struct Instruction {
+        virtual ~Instruction() {}
+        const char *const type = "Default";
     };
+
+    struct Print : Instruction {
+        const char *const type = "Print";
+    };
+    struct Add : Instruction {
+        const char *const type = "Add";
+    };
+    struct Sub : Instruction {
+        const char *const type = "Sub";
+    };
+    struct Eq : Instruction {
+        const char *const type = "Eq";
+    };
+    struct NEq : Instruction {
+        const char *const type = "NEq";
+    };
+    struct PushInt : Instruction {
+        PushInt(int value) : value { value } {}
+        const char *const type = "PushInt";
+        int value;
+    };
+    struct PushDouble : Instruction {
+        PushDouble(double value) : value { value } {}
+        const char *const type = "PushDouble";
+        double value;
+    };
+    struct Assign : Instruction {
+        Assign(std::string_view name) : name { name } {}
+        std::string_view name;
+        const char *const type = "Assign";
+    };
+    struct Variable : Instruction {
+        Variable(std::string_view name) : name { name } {}
+        const char *const type = "Variable";
+        std::string_view name;
+    };
+
+    // old
+    //enum class Instruction {
+        //PRINT,
+
+        //ADD,
+        //SUB,
+
+        //EQ,
+        //NEQ,
+
+        //PUSH_INT,
+        //PUSH_DOUBLE,
+
+        //ASSIGN,
+    //};
 }
 
 class BytecodeGenerator : public Expressions::ExpressionVisitor, Statements::StatementVisitor {
-    using Value = std::variant<int, std::string>;
+    using Value = std::variant<int, double, std::string>;
 
 public:
-  BytecodeGenerator(std::unordered_map<std::string, Value> variables,
-                    std::span<std::unique_ptr<Statements::Statement>> statements)
-      : variables{ std::move(variables) }, statements{ std::move(statements) } {}
+  BytecodeGenerator(std::span<std::unique_ptr<Statements::Statement>> statements)
+      : statements{ std::move(statements) } {}
 
-  [[nodiscard]] auto generate() -> std::vector<ByteCode::Type> {
+  [[nodiscard]] auto generate() -> std::vector<std::unique_ptr<ByteCode::Instruction>> {
+      spdlog::warn("=== Start Generating ===");
       for (auto &statement : this->statements) {
           statement->accept(*this);
       }
 
-      return this->instructions;
+      return std::move(this->instructions);
   }
 
 private:
   const std::unordered_map<std::string_view, ByteCode::Instruction> BinaryOperatorMap = {
-      { "+", ByteCode::Instruction::ADD },
-      { "-", ByteCode::Instruction::SUB },
+      { "+", ByteCode::Add {} },
+      { "-", ByteCode::Sub {} },
   };
 
 private:
-    auto add_instruction(ByteCode::Instruction instruction) -> void {
-        this->instructions.push_back(static_cast<ByteCode::Type>(instruction));
-    }
-
     template<typename T>
-    auto add_instruction(T value) -> void {
-        fmt::print("Adding instruction: {}\n", __PRETTY_FUNCTION__);
-        uint8_t byteArray[sizeof(T)];
-        std::memcpy(byteArray, &value, sizeof(T));
-        this->instructions.insert(std::end(this->instructions), std::begin(byteArray), std::end(byteArray));
+    auto add_instruction(const T& instruction) -> void {
+        spdlog::info(fmt::format("Add instruction {}", instruction.type));
+        this->instructions.emplace_back(std::make_unique<T>(instruction));
     }
 
     // ------------------------------------------------------------------------
@@ -70,7 +107,7 @@ private:
 
     auto visit(Statements::Print&               statement) -> void override {
         statement.expression->accept(*this);
-        add_instruction(ByteCode::Instruction::PRINT);
+        add_instruction(ByteCode::Print {});
     }
 
     // ------------------------------------------------------------------------
@@ -80,20 +117,26 @@ private:
         expression.lhs->accept(*this);
         expression.rhs->accept(*this);
 
-        add_instruction(BinaryOperatorMap.at(expression.operator_type.getLexeme()));
+        if (expression.operator_type.getLexeme() == "+") {
+            add_instruction(ByteCode::Add {});
+        }
+        if (expression.operator_type.getLexeme() == "-") {
+            add_instruction(ByteCode::Sub {});
+        }
+
+        //add_instruction(BinaryOperatorMap.at(expression.operator_type.getLexeme()));
     }
 
     auto visit(Expressions::INumber&            expression) -> void override {
-        add_instruction(ByteCode::Instruction::PUSH_INT);
-        add_instruction(expression.value);
+        add_instruction(ByteCode::PushInt(expression.value));
     }
     auto visit(Expressions::DNumber&            expression) -> void override {
-        add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
-        add_instruction(expression.value);
+        add_instruction(ByteCode::PushDouble(expression.value));
     }
 
     auto visit(Expressions::Variable&            expression) -> void override {
-        assert(false);
+        spdlog::info(fmt::format("Variable expr pushing: {}", expression.name.getLexeme()));
+        add_instruction(ByteCode::Variable(expression.name.getLexeme()));
         //add_instruction(ByteCode::Instruction::PUSH_DOUBLE);
         //add_instruction(expression.value);
     }
@@ -103,16 +146,26 @@ private:
         expression.rhs->accept(*this);
         switch (expression.operator_type.ttype) {
             case TokenType::EqualEqual:
-                return add_instruction(ByteCode::Instruction::EQ);
+                return add_instruction(ByteCode::Eq {});
             case TokenType::BangEqual:
-                return add_instruction(ByteCode::Instruction::NEQ);
+                return add_instruction(ByteCode::NEq {});
             default:
                 assert(false);
         }
     }
 
+    auto visit(Expressions::Assign&            expression) -> void override {
+        expression.value->accept(*this);
+        add_instruction(ByteCode::Assign(expression.name.getLexeme()));
+        // OLD
+        //if (!variables_index.contains(expression.name.getLexeme())) {
+            //variables_index.emplace(expression.name.getLexeme(), variables_index.size());
+        //}
+        //add_instruction(variables_index.at(expression.name.getLexeme()));
+    }
 private:
-    std::unordered_map<std::string, Value> variables;
-    std::vector<ByteCode::Type> instructions;
+    std::unordered_map<std::string_view, int> variables_index;
+    //std::unordered_map<std::string, Value> variables_values;
+    std::vector<std::unique_ptr<ByteCode::Instruction>> instructions;
     std::span<std::unique_ptr<Statements::Statement>> statements;
 };

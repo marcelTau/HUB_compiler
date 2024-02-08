@@ -64,6 +64,13 @@ public:
     [[nodiscard]] auto assignment() -> UniqExpr {
         auto expr = equality();
         //auto expr = term();
+
+        if (checkAndAdvance(TokenType::Assign)) {
+            auto value = assignment();
+            auto name = dynamic_cast<Expressions::Variable *>(expr.get())->name;
+            return UniqExpr(std::make_unique<Expressions::Assign>(name, std::move(value)));
+        }
+
         return expr;
     }
 
@@ -117,7 +124,7 @@ public:
         }
 
         if (checkAndAdvance(TokenType::Identifier)) {
-            auto variable = std::make_unique<Expressions::Variable>(previous().lexeme);
+            auto variable = std::make_unique<Expressions::Variable>(previous());
             return UniqExpr(std::move(variable));
         }
 

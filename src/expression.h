@@ -12,8 +12,9 @@ namespace Expressions {
     struct INumber;
     struct DNumber;
     struct BinaryOperator;
-    struct Variable;
+    struct Variable; // variable lookup not assign
     struct Logical;
+    struct Assign;
 
     struct ExpressionVisitor {
         virtual void visit(BinaryOperator& expression) = 0;
@@ -21,6 +22,7 @@ namespace Expressions {
         virtual void visit(DNumber& expression) = 0;
         virtual void visit(Variable& expression) = 0;
         virtual void visit(Logical& expression) = 0;
+        virtual void visit(Assign& expression) = 0;
     };
 
     // ============================================================================
@@ -70,11 +72,11 @@ namespace Expressions {
     };
 
     struct Variable : public ExpressionAcceptor<Variable> {
-        Variable(std::string_view name) : name { name } {};
+        Variable(Token name) : name { name } {};
         Variable(Variable&& other) noexcept = default;
-        [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "Variable " + name; };
+        [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "Variable " + std::string { name.getLexeme() }; };
 
-        std::string name;
+        Token name;
     };
 
     struct Logical : public ExpressionAcceptor<Logical> {
@@ -85,5 +87,14 @@ namespace Expressions {
         std::unique_ptr<Expression> lhs;
         Token operator_type;
         std::unique_ptr<Expression> rhs;
+    };
+
+    struct Assign : public ExpressionAcceptor<Assign> {
+        Assign(Token name, std::unique_ptr<Expression> value) : name { name }, value { std::move(value) }{};
+        Assign(Assign&& other) noexcept = default;
+        [[nodiscard]] auto to_string(std::size_t offset = 0) -> std::string const final { return "Assign " + std::string { name.getLexeme() } + " " + value->to_string(); };
+
+        Token name;
+        std::unique_ptr<Expression> value;
     };
 }
