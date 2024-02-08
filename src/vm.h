@@ -21,12 +21,16 @@ class VirtualMachine {
     enum class BinaryOperators {
         ADD,
         SUB,
+        MUL,
+        DIV,
         EQ,
         NEQ,
     };
     static constexpr std::array BinaryOperatorNames = {
         "ADD",
         "SUB",
+        "MUL",
+        "DIV",
         "EQ",
         "NEQ",
     };
@@ -63,12 +67,29 @@ public:
                 assert(false && "type mismatch");
             }
             break;
-
         case BinaryOperators::SUB:
             if (std::holds_alternative<INumber>(a) && std::holds_alternative<INumber>(b)) {
                 stack.emplace_back(std::get<INumber>(a) - std::get<INumber>(b));
             } else if (std::holds_alternative<DNumber>(a) && std::holds_alternative<DNumber>(b)) {
                 stack.emplace_back(std::get<DNumber>(a) - std::get<DNumber>(b));
+            } else {
+                assert(false && "type mismatch");
+            }
+            break;
+        case BinaryOperators::MUL:
+            if (std::holds_alternative<INumber>(a) && std::holds_alternative<INumber>(b)) {
+                stack.emplace_back(std::get<INumber>(a) * std::get<INumber>(b));
+            } else if (std::holds_alternative<DNumber>(a) && std::holds_alternative<DNumber>(b)) {
+                stack.emplace_back(std::get<DNumber>(a) * std::get<DNumber>(b));
+            } else {
+                assert(false && "type mismatch");
+            }
+            break;
+        case BinaryOperators::DIV:
+            if (std::holds_alternative<INumber>(a) && std::holds_alternative<INumber>(b)) {
+                stack.emplace_back(std::get<INumber>(a) / std::get<INumber>(b));
+            } else if (std::holds_alternative<DNumber>(a) && std::holds_alternative<DNumber>(b)) {
+                stack.emplace_back(std::get<DNumber>(a) / std::get<DNumber>(b));
             } else {
                 assert(false && "type mismatch");
             }
@@ -112,20 +133,28 @@ public:
                 doBinaryOperation(BinaryOperators::ADD);
             } else if (dynamic_cast<ByteCode::Sub *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::SUB);
+            } else if (dynamic_cast<ByteCode::Mul *>(inst.get())) {
+                doBinaryOperation(BinaryOperators::MUL);
+            } else if (dynamic_cast<ByteCode::Div *>(inst.get())) {
+                doBinaryOperation(BinaryOperators::DIV);
             } else if (dynamic_cast<ByteCode::Eq *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::EQ);
             } else if (dynamic_cast<ByteCode::NEq *>(inst.get())) {
                 doBinaryOperation(BinaryOperators::NEQ);
             } else if (dynamic_cast<ByteCode::PushInt *>(inst.get())) {
-                this->stack.push_back(dynamic_cast<ByteCode::PushInt *>(inst.get())->value);
+                const auto value = dynamic_cast<ByteCode::PushInt *>(inst.get())->value;
+                spdlog::info(fmt::format("PushInt [{}]", value));
+                this->stack.push_back(value);
             } else if (dynamic_cast<ByteCode::PushDouble *>(inst.get())) {
-                assert(false);
+                assert(false && "Not implemented");
             } else if (dynamic_cast<ByteCode::Assign *>(inst.get())) {
                 const auto value = pop();
                 const auto name = dynamic_cast<ByteCode::Assign *>(inst.get())->name;
+                spdlog::info(fmt::format("Assign [{}] to {}", std::visit(PrintVisitor{}, value), name));
                 this->variables.insert({ name, value });
             } else if (dynamic_cast<ByteCode::Variable *>(inst.get())) {
                 const auto name = dynamic_cast<ByteCode::Variable *>(inst.get())->name;
+                spdlog::info(fmt::format("Lookup variable {}", name));
                 if (not this->variables.contains(name)) {
                     fmt::print(stderr, "No variable with name '{}'", name);
                     assert(false);

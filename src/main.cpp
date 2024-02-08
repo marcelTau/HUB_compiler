@@ -52,7 +52,9 @@ auto main(int argc, char* argv[]) -> int {
     auto lexer = Lexer(R"(
                 a := 5;
                 b := 10;
-                c := a + b;
+                c := a * b;
+                d := a != b;
+                print d;
                 print c;)"sv);
     auto tokens = lexer.lex();
 

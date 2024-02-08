@@ -25,6 +25,12 @@ namespace ByteCode {
     struct Sub : Instruction {
         const char *const type = "Sub";
     };
+    struct Mul : Instruction {
+        const char *const type = "Mul";
+    };
+    struct Div : Instruction {
+        const char *const type = "Div";
+    };
     struct Eq : Instruction {
         const char *const type = "Eq";
     };
@@ -51,22 +57,6 @@ namespace ByteCode {
         const char *const type = "Variable";
         std::string_view name;
     };
-
-    // old
-    //enum class Instruction {
-        //PRINT,
-
-        //ADD,
-        //SUB,
-
-        //EQ,
-        //NEQ,
-
-        //PUSH_INT,
-        //PUSH_DOUBLE,
-
-        //ASSIGN,
-    //};
 }
 
 class BytecodeGenerator : public Expressions::ExpressionVisitor, Statements::StatementVisitor {
@@ -84,12 +74,6 @@ public:
 
       return std::move(this->instructions);
   }
-
-private:
-  const std::unordered_map<std::string_view, ByteCode::Instruction> BinaryOperatorMap = {
-      { "+", ByteCode::Add {} },
-      { "-", ByteCode::Sub {} },
-  };
 
 private:
     template<typename T>
@@ -117,14 +101,12 @@ private:
         expression.lhs->accept(*this);
         expression.rhs->accept(*this);
 
-        if (expression.operator_type.getLexeme() == "+") {
-            add_instruction(ByteCode::Add {});
-        }
-        if (expression.operator_type.getLexeme() == "-") {
-            add_instruction(ByteCode::Sub {});
-        }
-
-        //add_instruction(BinaryOperatorMap.at(expression.operator_type.getLexeme()));
+        switch (expression.operator_type.getLexeme()[0]) {
+            case '+': return add_instruction(ByteCode::Add {});
+            case '-': return add_instruction(ByteCode::Sub {});
+            case '*': return add_instruction(ByteCode::Mul {});
+            case '/': return add_instruction(ByteCode::Div {});
+        };
     }
 
     auto visit(Expressions::INumber&            expression) -> void override {

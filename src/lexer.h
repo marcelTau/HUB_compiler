@@ -1,6 +1,5 @@
 #pragma once
 #include <cctype>
-#include <math.h>
 #include <optional>
 #include <vector>
 #include <string_view>
